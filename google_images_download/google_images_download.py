@@ -136,6 +136,8 @@ class googleimagesdownload:
                 respData = str(resp.read())
                 return respData
             except Exception as e:
+                print(str(e))
+                print(url)
                 print("Could not open URL. Please check your internet connection and/or ssl settings")
         else:  # If the Current Version of Python is 2.x
             try:
@@ -229,11 +231,11 @@ class googleimagesdownload:
             url_item = url_item.replace('&amp;', '&')
 
             start_line_2 = s.find('class="dtviD"')
-            start_content_2 = s.find(':', start_line_2 + 1)
-            end_content_2 = s.find('"', start_content_2 + 1)
+            start_content_2 = s.find('>', start_line_2 + 1)
+            end_content_2 = s.find('<', start_content_2 + 1)
             url_item_name = str(s[start_content_2 + 1:end_content_2])
 
-            #print(url_item,url_item_name)
+            print(url_item,url_item_name)
             return url_item,url_item_name,end_content
 
 
@@ -329,7 +331,9 @@ class googleimagesdownload:
                 l4 = content.find(';', l3 + 19)
                 urll2 = content[l3 + 19:l4]
                 return urll2
-            except:
+            except Exception as e:
+                print(str(e))
+                print("an Exception!!!!!!")
                 return "Cloud not connect to Google Images endpoint"
         else:  # If the Current Version of Python is 2.x
             try:
@@ -426,6 +430,7 @@ class googleimagesdownload:
             url = url + safe_search_string
 
         # print(url)
+        url += "&pws=0&gl=us&gws_rd=cr"
         return url
 
 
@@ -794,11 +799,17 @@ class googleimagesdownload:
 
         if arguments['url']:
             current_time = str(datetime.datetime.now()).split('.')[0]
-            search_keyword = [current_time.replace(":", "_")]
+            if arguments['keywords']:
+                search_keyword = [str(item) for item in arguments['keywords'].split(',')]
+            else:
+                search_keyword = [current_time.replace(":", "_")]
 
         if arguments['similar_images']:
             current_time = str(datetime.datetime.now()).split('.')[0]
-            search_keyword = [current_time.replace(":", "_")]
+            if arguments['keywords']:
+                search_keyword = [str(item) for item in arguments['keywords'].split(',')]
+            else:
+                search_keyword = [current_time.replace(":", "_")]
 
         # If single_image or url argument not present then keywords is mandatory argument
         if arguments['single_image'] is None and arguments['url'] is None and arguments['similar_images'] is None and \
@@ -866,9 +877,15 @@ class googleimagesdownload:
                                 os.makedirs("logs")
                         except OSError as e:
                             print(e)
-                        json_file = open("logs/"+search_keyword[i]+".json", "w")
-                        json.dump(items, json_file, indent=4, sort_keys=True)
-                        json_file.close()
+                        if not arguments['related_images']:
+                            json_file = open("logs/"+search_keyword[i]+".json", "w")
+                            json.dump(items, json_file, indent=4, sort_keys=True)
+                            json_file.close()
+                        else:
+                            os.makedirs("logs/"+search_keyword[i])
+                            json_file = open("logs/"+search_keyword[i]+"/"+search_keyword[i]+".json", "w")
+                            json.dump(items, json_file, indent=4, sort_keys=True)
+                            json_file.close()
 
                     #Related images
                     if arguments['related_images']:
@@ -882,7 +899,19 @@ class googleimagesdownload:
                             else:
                                 new_raw_html = self.download_extended_page(value,arguments['chromedriver'])
                             self.create_directories(main_directory, final_search_term,arguments['thumbnail'])
-                            self._get_all_items(new_raw_html, main_directory, search_term + " - " + key, limit,arguments)
+                            items,errorCount,abs_path = self._get_all_items(new_raw_html, main_directory, search_term + " - " + key, limit,arguments)
+                            paths[pky + search_keyword[i] + sky] = abs_path
+
+                            #dumps into a json file
+                            if arguments['extract_metadata']:
+                                try:
+                                    if not os.path.exists("logs"):
+                                        os.makedirs("logs")
+                                except OSError as e:
+                                    print(e)
+                                json_file = open("logs/"+search_keyword[i]+"/"+final_search_term+".json", "w")
+                                json.dump(items, json_file, indent=4, sort_keys=True)
+                                json_file.close()
 
                     i += 1
                     print("\nErrors: " + str(errorCount) + "\n")
