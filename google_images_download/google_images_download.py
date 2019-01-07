@@ -878,7 +878,17 @@ class googleimagesdownload:
                         except OSError as e:
                             print(e)
                         if not arguments['related_images']:
-                            json_file = open("logs/"+search_keyword[i]+".json", "w")
+                            if arguments["metadata_directory"]:
+                                log_path = arguments["metadata_directory"]
+                                if not os.path.exists(log_path):
+                                    os.makedirs(log_path)
+                            else:
+                                log_path = "logs"
+                            if arguments["metadata_filename"]:
+                                log_file_name = arguments["metadata_filename"]+".json"
+                            else:
+                                log_file_name = search_keyword[i]+".json"
+                            json_file = open(os.path.join(log_path, log_file_name), "w")
                             json.dump(items, json_file, indent=4, sort_keys=True)
                             json_file.close()
                         else:
